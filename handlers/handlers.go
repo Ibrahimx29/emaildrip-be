@@ -40,6 +40,15 @@ type LemonSqueezyMeta struct {
 	CustomData map[string]interface{} `json:"custom_data"`
 }
 
+type CheckoutRequest struct {
+	UserID string `json:"user_id" binding:"required"`
+	Email  string `json:"email" binding:"required"`
+}
+
+type CheckoutResponse struct {
+	URL string `json:"url"`
+}
+
 func (h *Handlers) RewriteEmail(c *gin.Context) {
 	var req RewriteRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -229,4 +238,23 @@ func (h *Handlers) LemonSqueezyWebhook(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{"received": true})
+}
+
+func (h *Handlers) CreateCheckout(c *gin.Context) {
+	var req CheckoutRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Create checkout session with LemonSqueezy
+	checkoutURL, err := h.LemonSqueezy.CreateCheckoutSession(req.UserID, req.Email)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to create checkout session"})
+		return
+	}
+
+	c.JSON(200, CheckoutResponse{
+		URL: checkoutURL,
+	})
 }

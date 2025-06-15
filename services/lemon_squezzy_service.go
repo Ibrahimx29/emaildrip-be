@@ -1,7 +1,10 @@
 package services
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/json"
+	"net/http"
 	"time"
 )
 
@@ -56,6 +59,16 @@ type SubscriptionRelations struct {
 	Product              Product              `json:"product"`
 	Variant              Variant              `json:"variant"`
 	SubscriptionInvoices SubscriptionInvoices `json:"subscription-invoices"`
+}
+
+type LemonSqueezyCheckoutResponse struct {
+	Data struct {
+		ID         string `json:"id"`
+		Type       string `json:"type"`
+		Attributes struct {
+			URL string `json:"url"`
+		} `json:"attributes"`
+	} `json:"data"`
 }
 
 type Store struct {
@@ -247,4 +260,79 @@ func (ls *LemonSqueezyService) HandleSubscriptionPaused(subscription LemonSqueez
 
 func (ls *LemonSqueezyService) HandleSubscriptionUnpaused(subscription LemonSqueezySubscription) error {
 	return ls.HandleSubscriptionUpdated(subscription)
+}
+
+// CreateCheckoutSession creates a checkout session with LemonSqueezy
+func (ls *LemonSqueezyService) CreateCheckoutSession(userID, email string) (string, error) {
+	// LemonSqueezy checkout payload
+	checkoutData := map[string]interface{}{
+		"data": map[string]interface{}{
+			"type": "checkouts",
+			"attributes": map[string]interface{}{
+				"checkout_options": map[string]interface{}{
+					"embed": false,
+					"media": false,
+					"logo":  true,
+				},
+				"checkout_data": map[string]interface{}{
+					"email": email,
+					"custom": map[string]interface{}{
+						"user_id": userID,
+					},
+				},
+				"product_options": map[string]interface{}{
+					"enabled_variants": []int{}, // Add your variant IDs here
+					"redirect_url":     "",      // Optional: where to redirect after purchase
+					"receipt_link_url": "",      // Optional: custom receipt URL
+				},
+			},
+			"relationships": map[string]interface{}{
+				"store": map[string]interface{}{
+					"data": map[string]interface{}{
+						"type": "stores",
+						"id":   "", // Your LemonSqueezy store ID
+					},
+				},
+				"variant": map[string]interface{}{
+					"data": map[string]interface{}{
+						"type": "variants",
+						"id":   "", // Your product variant ID
+					},
+				},
+			},
+		},
+	}
+
+	// Convert to JSON
+	jsonData, err := json.Marshal(checkoutData)
+	if err != nil {
+		return "", err
+	}
+
+	// Create HTTP request
+	req, err := http.NewRequest("POST", "https://api.lemonsqueezy.com/v1/checkouts", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", err
+	}
+
+	// Set headers
+	req.Header.Set("Accept", "application/vnd.api+json")
+	req.Header.Set("Content-Type", "application/vnd.api+json")
+	req.Header.Set("Authorization", "Bearer "+ls.APIKey)
+
+	// Make request
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	// Parse response
+	var checkoutResp LemonSqueezyCheckoutResponse
+	if err := json.NewDecoder(resp.Body).Decode(&checkoutResp); err != nil {
+		return "", err
+	}
+
+	return checkoutResp.Data.Attributes.URL, nil
 }

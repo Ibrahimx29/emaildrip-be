@@ -42,7 +42,7 @@ func main() {
 
 	// CORS middleware
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "https://emaildrip.vercel.app"},
+		AllowOrigins:     []string{"http://localhost:5173", "https://your-frontend.vercel.app"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Signature"},
 		AllowCredentials: true,
@@ -59,6 +59,7 @@ func main() {
 		api.POST("/rewrite", handlers.RewriteEmail)
 		api.GET("/usage/:user_id", handlers.GetUsage)
 		api.GET("/emails/:user_id", handlers.GetUserEmails)
+		api.POST("/checkout", handlers.CreateCheckout)
 		api.POST("/lemonsqueezy/webhook", handlers.LemonSqueezyWebhook)
 	}
 
