@@ -3,7 +3,7 @@ package handlers
 import (
 	"crypto/hmac"
 	"crypto/sha256"
-	"email-drip-be/services"
+	"emaildrip-be/services"
 	"encoding/hex"
 	"encoding/json"
 	"io"

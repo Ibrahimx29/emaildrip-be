@@ -1,4 +1,4 @@
-module email-drip-be
+module emaildrip-be
 
 go 1.24.2
 

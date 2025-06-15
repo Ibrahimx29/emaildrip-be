@@ -1,9 +1,9 @@
 package main
 
 import (
-	"email-drip-be/databases"
-	"email-drip-be/handlers"
-	"email-drip-be/services"
+	"emaildrip-be/databases"
+	"emaildrip-be/handlers"
+	"emaildrip-be/services"
 	"log"
 	"os"
 
