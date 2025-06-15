@@ -2,7 +2,7 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "./email-drip-be"
+startCommand = "./emaildrip-be"
 
 [env]
 GIN_MODE = "release"
