@@ -1,20 +1,21 @@
 package handlers
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
 	"email-drip-be/services"
+	"encoding/hex"
 	"encoding/json"
 	"io"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/stripe/stripe-go/v75"
-	"github.com/stripe/stripe-go/v75/webhook"
 )
 
 type Handlers struct {
-	AI     *services.AIService
-	Email  *services.EmailService
-	Stripe *services.StripeService
+	AI           *services.AIService
+	Email        *services.EmailService
+	LemonSqueezy *services.LemonSqueezyService
 }
 
 type RewriteRequest struct {
@@ -27,6 +28,16 @@ type RewriteRequest struct {
 type RewriteResponse struct {
 	Rewritten string `json:"rewritten"`
 	Roast     string `json:"roast,omitempty"`
+}
+
+type LemonSqueezyWebhookPayload struct {
+	Meta LemonSqueezyMeta                  `json:"meta"`
+	Data services.LemonSqueezySubscription `json:"data"`
+}
+
+type LemonSqueezyMeta struct {
+	EventName  string                 `json:"event_name"`
+	CustomData map[string]interface{} `json:"custom_data"`
 }
 
 func (h *Handlers) RewriteEmail(c *gin.Context) {
@@ -138,43 +149,83 @@ func (h *Handlers) GetUserEmails(c *gin.Context) {
 	c.JSON(200, gin.H{"emails": emails})
 }
 
-func (h *Handlers) StripeWebhook(c *gin.Context) {
+// verifyLemonSqueezySignature verifies the webhook signature from LemonSqueezy
+func (h *Handlers) verifyLemonSqueezySignature(payload []byte, signature string, secret string) bool {
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write(payload)
+	expectedMAC := hex.EncodeToString(mac.Sum(nil))
+	return hmac.Equal([]byte(signature), []byte(expectedMAC))
+}
+
+func (h *Handlers) LemonSqueezyWebhook(c *gin.Context) {
 	payload, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		c.JSON(400, gin.H{"error": "Invalid payload"})
 		return
 	}
 
-	event, err := webhook.ConstructEvent(payload, c.GetHeader("Stripe-Signature"), h.Stripe.WebhookSecret)
-	if err != nil {
+	// Verify webhook signature
+	signature := c.GetHeader("X-Signature")
+	if !h.verifyLemonSqueezySignature(payload, signature, h.LemonSqueezy.WebhookSecret) {
 		c.JSON(400, gin.H{"error": "Invalid signature"})
 		return
 	}
 
-	switch event.Type {
-	case "customer.subscription.created", "customer.subscription.updated":
-		var subscription stripe.Subscription
-		if err := json.Unmarshal(event.Data.Raw, &subscription); err != nil {
-			c.JSON(400, gin.H{"error": "Invalid subscription data"})
+	// Parse webhook payload
+	var webhookPayload LemonSqueezyWebhookPayload
+	if err := json.Unmarshal(payload, &webhookPayload); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid JSON payload"})
+		return
+	}
+
+	// Handle different event types
+	switch webhookPayload.Meta.EventName {
+	case "subscription_created":
+		if err := h.LemonSqueezy.HandleSubscriptionCreated(webhookPayload.Data); err != nil {
+			c.JSON(500, gin.H{"error": "Failed to handle subscription creation"})
 			return
 		}
 
-		if err := h.Stripe.HandleSubscriptionUpdate(subscription); err != nil {
-			c.JSON(500, gin.H{"error": "Failed to update subscription"})
+	case "subscription_updated":
+		if err := h.LemonSqueezy.HandleSubscriptionUpdated(webhookPayload.Data); err != nil {
+			c.JSON(500, gin.H{"error": "Failed to handle subscription update"})
 			return
 		}
 
-	case "customer.subscription.deleted":
-		var subscription stripe.Subscription
-		if err := json.Unmarshal(event.Data.Raw, &subscription); err != nil {
-			c.JSON(400, gin.H{"error": "Invalid subscription data"})
+	case "subscription_cancelled":
+		if err := h.LemonSqueezy.HandleSubscriptionCancelled(webhookPayload.Data); err != nil {
+			c.JSON(500, gin.H{"error": "Failed to handle subscription cancellation"})
 			return
 		}
 
-		if err := h.Stripe.HandleSubscriptionCancellation(subscription); err != nil {
-			c.JSON(500, gin.H{"error": "Failed to cancel subscription"})
+	case "subscription_resumed":
+		if err := h.LemonSqueezy.HandleSubscriptionResumed(webhookPayload.Data); err != nil {
+			c.JSON(500, gin.H{"error": "Failed to handle subscription resumption"})
 			return
 		}
+
+	case "subscription_expired":
+		if err := h.LemonSqueezy.HandleSubscriptionExpired(webhookPayload.Data); err != nil {
+			c.JSON(500, gin.H{"error": "Failed to handle subscription expiration"})
+			return
+		}
+
+	case "subscription_paused":
+		if err := h.LemonSqueezy.HandleSubscriptionPaused(webhookPayload.Data); err != nil {
+			c.JSON(500, gin.H{"error": "Failed to handle subscription pause"})
+			return
+		}
+
+	case "subscription_unpaused":
+		if err := h.LemonSqueezy.HandleSubscriptionUnpaused(webhookPayload.Data); err != nil {
+			c.JSON(500, gin.H{"error": "Failed to handle subscription unpause"})
+			return
+		}
+
+	default:
+		// Log unknown event type but return success to avoid retries
+		c.JSON(200, gin.H{"message": "Unknown event type", "event": webhookPayload.Meta.EventName})
+		return
 	}
 
 	c.JSON(200, gin.H{"received": true})
