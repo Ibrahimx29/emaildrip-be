@@ -6,7 +6,9 @@ import (
 	"emaildrip-be/services"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
+	"log"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -243,14 +245,28 @@ func (h *Handlers) LemonSqueezyWebhook(c *gin.Context) {
 func (h *Handlers) CreateCheckout(c *gin.Context) {
 	var req CheckoutRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(400, gin.H{"error": fmt.Sprintf("Invalid request: %v", err)})
+		return
+	}
+
+	// Validate required fields
+	if req.UserID == "" || req.Email == "" {
+		c.JSON(400, gin.H{"error": "user_id and email are required"})
 		return
 	}
 
 	// Create checkout session with LemonSqueezy
 	checkoutURL, err := h.LemonSqueezy.CreateCheckoutSession(req.UserID, req.Email)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to create checkout session"})
+		// Log the detailed error for debugging
+		log.Printf("LemonSqueezy checkout creation failed: %v", err)
+		c.JSON(500, gin.H{"error": fmt.Sprintf("Failed to create checkout session: %v", err)})
+		return
+	}
+
+	// Validate the URL before returning
+	if checkoutURL == "" {
+		c.JSON(500, gin.H{"error": "Empty checkout URL received"})
 		return
 	}
 

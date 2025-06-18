@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"time"
 )
@@ -281,7 +283,7 @@ func (ls *LemonSqueezyService) CreateCheckoutSession(userID, email string) (stri
 					},
 				},
 				"product_options": map[string]interface{}{
-					"enabled_variants": []int{}, // Add your variant IDs here
+					"enabled_variants": []int{}, // Add your variant IDs here if needed
 					"redirect_url":     "",      // Optional: where to redirect after purchase
 					"receipt_link_url": "",      // Optional: custom receipt URL
 				},
@@ -290,13 +292,13 @@ func (ls *LemonSqueezyService) CreateCheckoutSession(userID, email string) (stri
 				"store": map[string]interface{}{
 					"data": map[string]interface{}{
 						"type": "stores",
-						"id":   "", // Your LemonSqueezy store ID
+						"id":   "YOUR_STORE_ID", // REQUIRED: Replace with your actual store ID
 					},
 				},
 				"variant": map[string]interface{}{
 					"data": map[string]interface{}{
 						"type": "variants",
-						"id":   "", // Your product variant ID
+						"id":   "YOUR_VARIANT_ID", // REQUIRED: Replace with your actual variant ID
 					},
 				},
 			},
@@ -328,10 +330,21 @@ func (ls *LemonSqueezyService) CreateCheckoutSession(userID, email string) (stri
 	}
 	defer resp.Body.Close()
 
+	// IMPORTANT: Check for HTTP errors
+	if resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("LemonSqueezy API error: %d - %s", resp.StatusCode, string(body))
+	}
+
 	// Parse response
 	var checkoutResp LemonSqueezyCheckoutResponse
 	if err := json.NewDecoder(resp.Body).Decode(&checkoutResp); err != nil {
 		return "", err
+	}
+
+	// Validate that we got a URL back
+	if checkoutResp.Data.Attributes.URL == "" {
+		return "", fmt.Errorf("no checkout URL returned from LemonSqueezy")
 	}
 
 	return checkoutResp.Data.Attributes.URL, nil
