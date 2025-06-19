@@ -294,7 +294,7 @@ func (ls *LemonSqueezyService) CreateCheckoutSession(userID, email string) (stri
 				"variant": map[string]interface{}{
 					"data": map[string]interface{}{
 						"type": "variants",
-						"id":   "861225", // ✅ your actual variant ID
+						"id":   "859702", // ✅ your actual variant ID
 					},
 				},
 			},
