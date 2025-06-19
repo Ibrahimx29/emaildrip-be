@@ -282,10 +282,7 @@ func (ls *LemonSqueezyService) CreateCheckoutSession(userID, email string) (stri
 						"user_id": userID,
 					},
 				},
-				"product_options": map[string]interface{}{ // ✅ No enabled_variants
-					"redirect_url":     "",
-					"receipt_link_url": "",
-				},
+				"product_options": map[string]interface{}{},
 			},
 			"relationships": map[string]interface{}{
 				"store": map[string]interface{}{
