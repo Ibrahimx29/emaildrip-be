@@ -38,15 +38,26 @@ func NewAIService(apiKey string) *AIService {
 }
 
 func (ai *AIService) RewriteEmail(email, tone string) (string, error) {
-	systemPrompt := fmt.Sprintf(`You are an expert email writer. Rewrite the given email in a %s tone. 
+	var toneGuidelines string
 
-Guidelines:
-- Polite: Professional, courteous, and respectful
-- Funny: Add appropriate humor while maintaining professionalism
-- Karen: Demanding, entitled, and dramatic (for fun)
-- Direct: Straight to the point, no fluff
+	switch tone {
+	case "Polite":
+		toneGuidelines = "Use a professional, respectful, and courteous tone."
+	case "Funny":
+		toneGuidelines = "Add light humor while keeping the message clear and professional."
+	case "Direct":
+		toneGuidelines = "Make the message concise, clear, and to the point. Avoid fluff."
+	case "Karen":
+		toneGuidelines = "Write in an exaggeratedly demanding, entitled, and dramatic tone. Over-the-top but still readable."
+	default:
+		toneGuidelines = "Write in a clear and professional tone."
+	}
 
-Keep the core message intact but improve the tone, grammar, and clarity. Return only the rewritten email.`, tone)
+	systemPrompt := fmt.Sprintf(`You are an expert email writer. Rewrite the email below using the following tone guideline:
+
+	%s
+
+	Keep the core message intact. Improve tone, grammar, and clarity. Return only the rewritten email.`, toneGuidelines)
 
 	return ai.callOpenRouter(systemPrompt, email, "mistralai/mixtral-8x7b-instruct")
 }
