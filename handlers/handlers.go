@@ -193,13 +193,13 @@ func (h *Handlers) LemonSqueezyWebhook(c *gin.Context) {
 	switch webhookPayload.Meta.EventName {
 	case "subscription_created":
 		if err := h.LemonSqueezy.HandleSubscriptionCreated(webhookPayload.Data); err != nil {
-			c.JSON(500, gin.H{"error": "Failed to handle subscription creation"})
+			c.JSON(500, gin.H{"error": fmt.Sprintf("Failed to handle subscription creation: %v", err)})
 			return
 		}
 
 	case "subscription_updated":
 		if err := h.LemonSqueezy.HandleSubscriptionUpdated(webhookPayload.Data); err != nil {
-			c.JSON(500, gin.H{"error": "Failed to handle subscription update"})
+			c.JSON(500, gin.H{"error": fmt.Sprintf("Failed to handle subscription update %v", err)})
 			return
 		}
 
