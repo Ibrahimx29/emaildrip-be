@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
 )
 
@@ -293,13 +292,13 @@ func (ls *LemonSqueezyService) CreateCheckoutSession(userID, email string) (stri
 				"store": map[string]interface{}{
 					"data": map[string]interface{}{
 						"type": "stores",
-						"id":   os.Getenv("LEMONSQUEEZY_STORE_ID"), // REQUIRED: Replace with your actual store ID
+						"id":   186706, // REQUIRED: Replace with your actual store ID
 					},
 				},
 				"variant": map[string]interface{}{
 					"data": map[string]interface{}{
 						"type": "variants",
-						"id":   os.Getenv("LEMONSQUEEZY_VARIANT_ID"), // REQUIRED: Replace with your actual variant ID
+						"id":   861225, // REQUIRED: Replace with your actual variant ID
 					},
 				},
 			},
