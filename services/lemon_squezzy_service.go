@@ -282,23 +282,22 @@ func (ls *LemonSqueezyService) CreateCheckoutSession(userID, email string) (stri
 						"user_id": userID,
 					},
 				},
-				"product_options": map[string]interface{}{
-					"enabled_variants": []int{}, // Add your variant IDs here if needed
-					"redirect_url":     "",      // Optional: where to redirect after purchase
-					"receipt_link_url": "",      // Optional: custom receipt URL
+				"product_options": map[string]interface{}{ // ✅ No enabled_variants
+					"redirect_url":     "",
+					"receipt_link_url": "",
 				},
 			},
 			"relationships": map[string]interface{}{
 				"store": map[string]interface{}{
 					"data": map[string]interface{}{
 						"type": "stores",
-						"id":   "186706", // REQUIRED: Replace with your actual store ID
+						"id":   "186706", // ✅ your actual store ID
 					},
 				},
-				"product": map[string]interface{}{ // <-- use product, not variant
+				"variant": map[string]interface{}{
 					"data": map[string]interface{}{
-						"type": "products",
-						"id":   "554519", // <- You need the product ID here (not variant ID)
+						"type": "variants",
+						"id":   "861225", // ✅ your actual variant ID
 					},
 				},
 			},
