@@ -295,10 +295,10 @@ func (ls *LemonSqueezyService) CreateCheckoutSession(userID, email string) (stri
 						"id":   "186706", // REQUIRED: Replace with your actual store ID
 					},
 				},
-				"variant": map[string]interface{}{
+				"product": map[string]interface{}{ // <-- use product, not variant
 					"data": map[string]interface{}{
-						"type": "variants",
-						"id":   "861225", // REQUIRED: Replace with your actual variant ID
+						"type": "products",
+						"id":   "554519", // <- You need the product ID here (not variant ID)
 					},
 				},
 			},
