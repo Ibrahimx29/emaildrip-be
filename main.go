@@ -42,7 +42,7 @@ func main() {
 
 	// CORS middleware
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "https://emaildrip.vercel.app"},
+		AllowOrigins:     []string{os.Getenv("ALLOWED_ORIGINS")},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Signature"},
 		AllowCredentials: true,
